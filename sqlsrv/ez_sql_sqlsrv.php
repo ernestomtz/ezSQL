@@ -111,6 +111,8 @@
 				$this->dbpassword = $dbpassword;
 				$this->dbhost = $dbhost;
 				$return_val = true;
+
+				$this->conn_queries = 0;
 			}
 
 			return $return_val;
@@ -177,7 +179,7 @@
 			$this->last_query = $query;
 
 			// Count how many queries there have been
-			$this->num_queries++;
+			$this->count(true, true);
 
 			// Use core file cache function
 			if ( $cache = $this->get_cache($query) )
@@ -216,7 +218,7 @@
 			if ( preg_match("/^(insert|delete|update|replace)\s+/i",$query) )
 			{
 				$is_insert = true;
-				$this->rows_affected = @sqlsrv_rows_affected($this->dbh);
+				$this->rows_affected = @sqlsrv_rows_affected($this->result);
 
 				// Take note of the insert_id
 				if ( preg_match("/^(insert|replace)\s+/i",$query) )
@@ -376,6 +378,7 @@
 
 		function disconnect()
 		{
+			$this->conn_queries = 0;
 			@sqlsrv_close($this->dbh);
 		}
 
