@@ -46,7 +46,7 @@
 		*  same time as initialising the ezSQL_mysqli class
 		*/
 
-		function ezSQL_mysqli($dbuser='', $dbpassword='', $dbname='', $dbhost='localhost', $encoding='')
+		function __construct($dbuser='', $dbpassword='', $dbname='', $dbhost='localhost', $encoding='')
 		{
 			$this->dbuser = $dbuser;
 			$this->dbpassword = $dbpassword;
@@ -161,7 +161,7 @@
 						$charsets[] = $row["Charset"];
 					}
 					if(in_array($encoding,$charsets)){
-						$this->dbh->query("SET NAMES '".$encoding."'");						
+						$this->dbh->set_charset($encoding);
 					}
 				}
 				
@@ -184,8 +184,12 @@
 				$this->connect($this->dbuser, $this->dbpassword, $this->dbhost, $this->dbport);
 				$this->select($this->dbname, $this->encoding);
 			}
+                        
+                        if ( get_magic_quotes_gpc() ) {
+				$str = stripslashes($str);
+                        }                        
 
-			return $this->dbh->escape_string(stripslashes($str));
+			return $this->dbh->escape_string($str);
 		}
 
 		/**********************************************************************
@@ -206,7 +210,7 @@
 		{
 
 			// This keeps the connection alive for very long running scripts
-			if ( $this->num_queries >= 500 )
+			if ( $this->count(false) >= 500 )
 			{
 				$this->disconnect();
 				$this->quick_connect($this->dbuser,$this->dbpassword,$this->dbname,$this->dbhost,$this->dbport,$this->encoding);
@@ -269,8 +273,8 @@
 				return false;
 			}
 
-			// Query was an insert, delete, update, replace
-			if ( preg_match("/^(insert|delete|update|replace|truncate|drop|create|alter|begin|commit|rollback|set|lock|unlock|call)/i",$query) )
+			// Query was a Data Manipulation Query (insert, delete, update, replace, ...)
+			if ( !is_object($this->result) )
 			{
 				$is_insert = true;
 				$this->rows_affected = @$this->dbh->affected_rows;
@@ -284,7 +288,7 @@
 				// Return number fo rows affected
 				$return_val = $this->rows_affected;
 			}
-			// Query was a select
+			// Query was a Data Query Query (select, show, ...)
 			else
 			{
 				$is_insert = false;
@@ -333,7 +337,67 @@
 			return $return_val;
 
 		}
-		
+
+		/**********************************************************************
+		 * Variables
+		 */
+		 private $s_query = "";
+		 
+		 private $s_params;
+		/**********************************************************************
+		*  set query
+		*/
+		function set_query($query)
+		{
+			$this->s_query = $query;
+			$this->s_params = array();
+		}
+
+		/**********************************************************************
+		*  Special query to escape all parameters
+		*/
+		function bind_param($parameter, $value)
+		{
+			$value = $this->escape($value);
+			$this->s_params[$parameter] = $value;
+			return 1;
+		}
+
+		/**********************************************************************
+		*  Special query to escape all parameters
+		*/
+		function execute()
+		{
+			if($this->s_query != '')
+			{
+				$query = $this->s_query;
+
+				if(!empty($this->s_params))
+				{
+					foreach($this->s_params as $param => $value)
+					{
+						$count = 0;
+						$query = str_replace($param, $value, $query, $count);
+						if($count == 0)
+						{
+							$str = $query .' no parameter was changed';
+							$this->register_error($str .' in '.__FILE__.' on line '.__LINE__);
+							$this->show_errors ? trigger_error($str,E_USER_WARNING) : null;
+						}
+					}
+				}
+
+				$this->s_query = "";
+				$this->s_params = array();
+
+				return $this->query($query);
+			}
+			else
+			{
+				return NULL;
+			}
+		}
+
 		/**********************************************************************
 		*  Close the active mySQLi connection
 		*/

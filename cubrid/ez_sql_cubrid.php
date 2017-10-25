@@ -42,7 +42,7 @@
 		*  same time as initialising the ezSQL_cubrid class
 		*/
 
-		function ezSQL_cubrid($dbuser='', $dbpassword='', $dbname='', $dbhost='localhost', $dbport=33000)
+		function __construct($dbuser='', $dbpassword='', $dbname='', $dbhost='localhost', $dbport=33000)
 		{
 			$this->dbuser = $dbuser;
 			$this->dbpassword = $dbpassword;
@@ -142,7 +142,7 @@
 		function query($query)
 		{
 			// This keeps the connection alive for very long running scripts
-			if ( $this->num_queries >= 500 )
+			if ( $this->count(false) >= 500 )
 			{
 				$this->disconnect();
 				$this->connect($this->dbuser,$this->dbpassword,$this->dbname,$this->dbhost,$this->dbport);

@@ -33,20 +33,22 @@
 		var $user;
 		var $password;
 		var $rows_affected = false;
-
+		var $insert_id;
+		var $last_result;
+		var $num_rows;
 		/**********************************************************************
 		*  Constructor - allow the user to perform a quick connect at the 
 		*  same time as initialising the ezSQL_pdo class
 		*/
 
-		function ezSQL_pdo($dsn='', $user='', $password='', $ssl=array())
+		function __construct($dsn='', $user='', $password='', $ssl=array())
 		{
 			// Turn on track errors 
 			ini_set('track_errors',1);
 			
 			if ( $dsn && $user )
 			{
-				$this->connect($dsn, $user, $password);
+				$this->connect($dsn, $user, $password, $ssl);
 			}
 		}
 
